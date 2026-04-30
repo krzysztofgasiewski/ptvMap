@@ -78,7 +78,7 @@ log.info("boot", "logging configured", { level: LOG_LEVEL });
 if (!API_KEY) {
   log.error(
     "boot",
-    "API_KEY missing from environment — upstream calls will fail",
+    "API_KEY missing from environment - upstream calls will fail",
   );
 } else {
   log.info("boot", "API key loaded", {
@@ -268,12 +268,12 @@ app.get("/api/vehicles", async (req, res) => {
 
   if (inflight[type]) {
     stats.dedup_hits++;
-    log.debug("cache", "miss — joining in-flight upstream", {
+    log.debug("cache", "miss - joining in-flight upstream", {
       req: reqId,
       type,
     });
   } else {
-    log.debug("cache", "miss — initiating upstream", { req: reqId, type });
+    log.debug("cache", "miss - initiating upstream", { req: reqId, type });
     inflight[type] = fetchZTM(type, reqId)
       .then((data) => {
         cache[type] = { data, ts: Date.now() };
@@ -378,6 +378,6 @@ process.on("SIGINT", () => {
 app.listen(PORT, () => {
   log.info(
     "boot",
-    `${c("bold", "ready")} — listening on http://localhost:${PORT}`,
+    `${c("bold", "ready")} - listening on http://localhost:${PORT}`,
   );
 });
