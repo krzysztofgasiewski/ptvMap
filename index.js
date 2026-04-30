@@ -375,9 +375,9 @@ process.on("SIGINT", () => {
 });
 
 // ---------- Start ----------
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   log.info(
     "boot",
-    `${c("bold", "ready")} - listening on http://localhost:${PORT}`,
+    `${c("bold", "ready")} - listening on http://0.0.0.0:${PORT}`,
   );
 });
