@@ -1,0 +1,15 @@
+{
+  "name": "ptvmap",
+  "version": "1.0.0",
+  "description": "A live map of Warsaw's Public Transport Vehicles, updating automatically every 10 seconds using the Open Data Warsaw API.",
+  "main": "index.js",
+  "keywords": [],
+  "author": "krzysztofgasiewski",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.2",
+  "dependencies": {
+    "compression": "^1.8.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}

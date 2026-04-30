@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>ZTM Warsaw — Live</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --panel: rgba(18, 18, 20, 0.78);
+        --panel-solid: #121214;
+        --panel-elevated: #1a1a1d;
+        --border: rgba(255, 255, 255, 0.06);
+        --border-strong: rgba(255, 255, 255, 0.12);
+        --text: #e8e8ea;
+        --muted: #8a8a90;
+        --accent: #f5b042;
+        --accent-bright: #ffc15e;
+        --accent-dim: rgba(245, 176, 66, 0.15);
+        --danger: #ef4f4f;
+      }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        font-family: "Inter", system-ui, sans-serif;
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      #map {
+        position: absolute;
+        inset: 0;
+        background: #0f0f10;
+      }
+
+      .leaflet-container {
+        background: #0f0f10;
+        font-family: inherit;
+      }
+      .leaflet-tile {
+        filter: invert(1) hue-rotate(180deg) brightness(0.88) contrast(0.85)
+          saturate(0.6);
+      }
+      .leaflet-control-zoom {
+        border: none !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+      }
+      .leaflet-control-zoom a {
+        background: var(--panel-solid) !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 8px !important;
+        width: 36px !important;
+        height: 36px !important;
+        line-height: 34px !important;
+        font-size: 18px !important;
+        margin-bottom: 4px !important;
+      }
+      .leaflet-control-zoom a:hover {
+        background: #1c1c1f !important;
+        color: var(--accent) !important;
+      }
+      .leaflet-control-attribution {
+        background: rgba(10, 10, 10, 0.7) !important;
+        color: var(--muted) !important;
+        font-size: 10px !important;
+        backdrop-filter: blur(8px);
+      }
+      .leaflet-control-attribution a {
+        color: var(--muted) !important;
+      }
+
+      .topbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background: var(--panel);
+        backdrop-filter: blur(20px) saturate(1.4);
+        -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        border-bottom: 1px solid var(--border);
+        padding: 10px 16px;
+        padding-top: max(10px, env(safe-area-inset-top));
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      .brand-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--accent);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.85);
+        }
+      }
+      .brand-text {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .brand-sub {
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .toggle {
+        display: flex;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 3px;
+        gap: 2px;
+      }
+      .toggle button {
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.03em;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-family: inherit;
+      }
+      .toggle button.active {
+        background: var(--accent-dim);
+        color: var(--accent);
+      }
+      .toggle button:not(.active):hover {
+        color: var(--text);
+      }
+
+      .search-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 180px;
+        max-width: 320px;
+      }
+      .search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px 32px 7px 32px;
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        transition: all 0.15s ease;
+      }
+      .search-input::placeholder {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 11px;
+      }
+      .search-input:focus {
+        outline: none;
+        border-color: var(--accent);
+        background: rgba(245, 176, 66, 0.05);
+      }
+      .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 14px;
+        height: 14px;
+        color: var(--muted);
+        pointer-events: none;
+      }
+      .search-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px;
+        display: none;
+        line-height: 0;
+      }
+      .search-clear:hover {
+        color: var(--text);
+      }
+      .search-input:not(:placeholder-shown) + .search-clear {
+        display: block;
+      }
+
+      .suggestions {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: var(--panel-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 10px;
+        max-height: 280px;
+        overflow-y: auto;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+        display: none;
+        z-index: 1001;
+      }
+      .suggestions.open {
+        display: block;
+        animation: slideDown 0.12s ease;
+      }
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-4px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .suggestion {
+        padding: 10px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: background 0.1s ease;
+      }
+      .suggestion:last-child {
+        border-bottom: none;
+      }
+      .suggestion:hover,
+      .suggestion.active {
+        background: var(--accent-dim);
+      }
+      .suggestion-line {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--accent);
+        min-width: 48px;
+      }
+      .suggestion-meta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .status {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+      }
+      .status .count {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .status .sep {
+        opacity: 0.3;
+      }
+
+      /* Tracking pill */
+      .tracking-pill {
+        position: absolute;
+        bottom: max(20px, env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%) translateY(80px);
+        z-index: 999;
+        background: var(--panel-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 100px;
+        padding: 10px 16px 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+        transition: transform 0.3s cubic-bezier(0.34, 1.3, 0.64, 1);
+        max-width: calc(100vw - 32px);
+      }
+      .tracking-pill.visible {
+        transform: translateX(-50%) translateY(0);
+      }
+      .tracking-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .tracking-line {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+      }
+      .tracking-meta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10.5px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tracking-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--accent-dim);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        animation: trackPulse 1.6s ease-in-out infinite;
+      }
+      @keyframes trackPulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(245, 176, 66, 0.4);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(245, 176, 66, 0);
+        }
+      }
+      .tracking-icon svg {
+        width: 14px;
+        height: 14px;
+        color: var(--accent);
+      }
+      .tracking-stop {
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border-left: 1px solid var(--border);
+        margin-left: 4px;
+        transition: color 0.15s ease;
+      }
+      .tracking-stop:hover {
+        color: var(--danger);
+      }
+
+      .leaflet-popup-content-wrapper,
+      .leaflet-popup-tip {
+        background: var(--panel-solid) !important;
+        color: var(--text) !important;
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+      }
+      .leaflet-popup-content-wrapper {
+        border-radius: 10px !important;
+      }
+      .leaflet-popup-content {
+        margin: 12px 14px !important;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .leaflet-popup-content .line-tag {
+        display: inline-block;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--accent);
+        letter-spacing: 0.02em;
+        margin-bottom: 4px;
+      }
+      .leaflet-popup-content .meta {
+        color: var(--muted);
+        font-size: 11.5px;
+        font-family: "JetBrains Mono", monospace;
+        margin-bottom: 8px;
+      }
+      .leaflet-popup-content .track-btn {
+        display: inline-block;
+        background: var(--accent-dim);
+        color: var(--accent);
+        border: 1px solid rgba(245, 176, 66, 0.3);
+        border-radius: 6px;
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s ease;
+      }
+      .leaflet-popup-content .track-btn:hover {
+        background: var(--accent);
+        color: #000;
+      }
+      .leaflet-popup-close-button {
+        color: var(--muted) !important;
+        padding: 8px !important;
+      }
+
+      @media (max-width: 640px) {
+        .topbar {
+          padding: 8px 12px;
+          padding-top: max(8px, env(safe-area-inset-top));
+          gap: 8px;
+        }
+        .brand-sub {
+          display: none;
+        }
+        .status {
+          width: 100%;
+          margin-left: 0;
+          order: 5;
+          font-size: 10.5px;
+        }
+        .search-wrap {
+          order: 4;
+          flex-basis: 100%;
+          max-width: 100%;
+          min-width: 0;
+        }
+        .toggle button {
+          padding: 6px 12px;
+          font-size: 11.5px;
+        }
+        .leaflet-control-zoom {
+          display: none;
+        }
+        .tracking-pill {
+          bottom: max(16px, env(safe-area-inset-bottom));
+          padding: 8px 14px 8px 12px;
+        }
+        .tracking-line {
+          font-size: 13px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div>
+          <div class="brand-text">ZTM Warsaw</div>
+          <div class="brand-sub">Live transit</div>
+        </div>
+      </div>
+
+      <div class="toggle" role="tablist">
+        <button class="active" data-type="1">Buses</button>
+        <button data-type="2">Trams</button>
+      </div>
+
+      <div class="search-wrap">
+        <svg
+          class="search-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+        <input
+          class="search-input"
+          id="search"
+          placeholder="Line or vehicle #"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button class="search-clear" id="search-clear" aria-label="Clear">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+        <div class="suggestions" id="suggestions"></div>
+      </div>
+
+      <div class="status">
+        <span class="count" id="count">—</span>
+        <span>vehicles</span>
+        <span class="sep">·</span>
+        <span id="updated">connecting</span>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="tracking-pill" id="tracking-pill">
+      <div class="tracking-icon">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+        </svg>
+      </div>
+      <div class="tracking-info">
+        <div class="tracking-line" id="track-line">—</div>
+        <div class="tracking-meta" id="track-meta">—</div>
+      </div>
+      <button class="tracking-stop" id="track-stop">Stop</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const map = L.map("map", {
+        zoomControl: true,
+        preferCanvas: true,
+        zoomSnap: 0.5,
+        tap: true,
+      }).setView([52.2297, 21.0122], 12);
+
+      map.zoomControl.setPosition("bottomright");
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap",
+      }).addTo(map);
+
+      const canvasRenderer = L.canvas({ padding: 0.5 });
+
+      const MAX_TRAIL = 12;
+      const ANIM_MS = 1500;
+      const REFRESH_MS = 10000;
+      const TRACK_ZOOM = 16;
+
+      const vehicles = new Map();
+      let currentType = "1";
+      let animFrame = null;
+      let trackedId = null;
+      let userMovedMap = false;
+
+      function colorFor(line) {
+        let hash = 0;
+        for (let i = 0; i < line.length; i++)
+          hash = line.charCodeAt(i) + ((hash << 5) - hash);
+        const h = Math.abs(hash) % 360;
+        return `hsl(${h}, 65%, 62%)`;
+      }
+
+      function popupHTML(v) {
+        return `
+        <div class="line-tag">${v.l}</div>
+        <div class="meta">#${v.i} · brig. ${v.b}<br>${v.t}</div>
+        <button class="track-btn" data-track="${v.i}">Track this</button>
+      `;
+      }
+
+      function ensureVehicle(v) {
+        let entry = vehicles.get(v.i);
+        const color = colorFor(v.l || "");
+
+        if (!entry) {
+          const marker = L.circleMarker([v.la, v.lo], {
+            renderer: canvasRenderer,
+            radius: 5,
+            fillColor: color,
+            color: "#fff",
+            weight: 1.2,
+            opacity: 0.9,
+            fillOpacity: 0.95,
+          })
+            .addTo(map)
+            .bindPopup(popupHTML(v));
+
+          const trail = L.polyline([[v.la, v.lo]], {
+            renderer: canvasRenderer,
+            color,
+            weight: 2,
+            opacity: 0.45,
+            lineCap: "round",
+            lineJoin: "round",
+          }).addTo(map);
+
+          marker.on("click", () => {
+            // popup will open by default; the track button inside handles tracking
+          });
+
+          entry = {
+            marker,
+            trail,
+            color,
+            line: v.l,
+            points: [[v.la, v.lo]],
+            from: [v.la, v.lo],
+            to: [v.la, v.lo],
+            startTs: performance.now(),
+            duration: 0,
+            data: v,
+          };
+          vehicles.set(v.i, entry);
+          return entry;
+        }
+
+        if (entry.line !== v.l) {
+          entry.line = v.l;
+          entry.color = color;
+          entry.marker.setStyle({ fillColor: color });
+          entry.trail.setStyle({ color });
+        }
+
+        const moved = entry.to[0] !== v.la || entry.to[1] !== v.lo;
+        if (moved) {
+          entry.from = [...entry.to];
+          entry.to = [v.la, v.lo];
+          entry.startTs = performance.now();
+          entry.duration = ANIM_MS;
+          entry.points.push([v.la, v.lo]);
+          if (entry.points.length > MAX_TRAIL) entry.points.shift();
+        }
+        entry.data = v;
+        entry.marker.setPopupContent(popupHTML(v));
+
+        // Highlight tracked vehicle
+        if (trackedId === v.i) {
+          entry.marker.setStyle({ radius: 8, weight: 2, color: "#f5b042" });
+          entry.trail.setStyle({ opacity: 0.85, weight: 3 });
+        } else {
+          entry.marker.setStyle({ radius: 5, weight: 1.2, color: "#fff" });
+          entry.trail.setStyle({ opacity: 0.45, weight: 2 });
+        }
+
+        return entry;
+      }
+
+      function easeOutCubic(t) {
+        return 1 - Math.pow(1 - t, 3);
+      }
+
+      function animate() {
+        const now = performance.now();
+        let active = false;
+
+        vehicles.forEach((entry, id) => {
+          if (entry.duration === 0) return;
+          const t = Math.min(1, (now - entry.startTs) / entry.duration);
+          const e = easeOutCubic(t);
+          const lat = entry.from[0] + (entry.to[0] - entry.from[0]) * e;
+          const lon = entry.from[1] + (entry.to[1] - entry.from[1]) * e;
+          entry.marker.setLatLng([lat, lon]);
+
+          const trailPoints = entry.points.slice(0, -1);
+          trailPoints.push([lat, lon]);
+          entry.trail.setLatLngs(trailPoints);
+
+          // Chase camera
+          if (id === trackedId && !userMovedMap) {
+            map.panTo([lat, lon], { animate: false });
+          }
+
+          if (t < 1) active = true;
+          else entry.duration = 0;
+        });
+
+        animFrame = active ? requestAnimationFrame(animate) : null;
+      }
+
+      function kickAnimation() {
+        if (!animFrame) animFrame = requestAnimationFrame(animate);
+      }
+
+      // Track a vehicle by ID
+      function trackVehicle(id) {
+        const entry = vehicles.get(id);
+        if (!entry) return;
+
+        // un-style previous
+        if (trackedId && vehicles.has(trackedId)) {
+          const prev = vehicles.get(trackedId);
+          prev.marker.setStyle({ radius: 5, weight: 1.2, color: "#fff" });
+          prev.trail.setStyle({ opacity: 0.45, weight: 2 });
+        }
+
+        trackedId = id;
+        userMovedMap = false;
+
+        // Animated zoom-in
+        map.flyTo([entry.to[0], entry.to[1]], TRACK_ZOOM, {
+          duration: 1.2,
+          easeLinearity: 0.25,
+        });
+
+        entry.marker.setStyle({ radius: 8, weight: 2, color: "#f5b042" });
+        entry.trail.setStyle({ opacity: 0.85, weight: 3 });
+
+        // Show pill
+        const pill = document.getElementById("tracking-pill");
+        document.getElementById("track-line").textContent =
+          `Line ${entry.data.l}`;
+        document.getElementById("track-meta").textContent =
+          `#${entry.data.i} · brig. ${entry.data.b}`;
+        pill.classList.add("visible");
+
+        map.closePopup();
+      }
+
+      function stopTracking() {
+        if (trackedId && vehicles.has(trackedId)) {
+          const prev = vehicles.get(trackedId);
+          prev.marker.setStyle({ radius: 5, weight: 1.2, color: "#fff" });
+          prev.trail.setStyle({ opacity: 0.45, weight: 2 });
+        }
+        trackedId = null;
+        userMovedMap = false;
+        document.getElementById("tracking-pill").classList.remove("visible");
+      }
+
+      document
+        .getElementById("track-stop")
+        .addEventListener("click", stopTracking);
+
+      // Detect user dragging the map → release chase
+      map.on("dragstart", () => {
+        if (trackedId) userMovedMap = true;
+      });
+      map.on("zoomstart", (e) => {
+        // Only treat as user-initiated if not from flyTo
+        if (trackedId && !flyingToTracked) userMovedMap = true;
+      });
+
+      let flyingToTracked = false;
+      const origFlyTo = map.flyTo.bind(map);
+      map.flyTo = function (...args) {
+        flyingToTracked = true;
+        const result = origFlyTo(...args);
+        map.once("moveend", () => {
+          flyingToTracked = false;
+        });
+        return result;
+      };
+
+      // Track button delegate (inside popups)
+      document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".track-btn");
+        if (btn) {
+          const id = btn.dataset.track;
+          trackVehicle(id);
+        }
+      });
+
+      async function update() {
+        const countEl = document.getElementById("count");
+        const updEl = document.getElementById("updated");
+
+        try {
+          const res = await fetch(`/api/vehicles?type=${currentType}`);
+          const data = await res.json();
+          if (!data.result) {
+            updEl.textContent = "API error";
+            return;
+          }
+
+          const seen = new Set();
+          for (const v of data.result) {
+            seen.add(v.i);
+            ensureVehicle(v);
+          }
+
+          for (const [id, entry] of vehicles) {
+            if (!seen.has(id)) {
+              map.removeLayer(entry.marker);
+              map.removeLayer(entry.trail);
+              vehicles.delete(id);
+              if (trackedId === id) stopTracking();
+            }
+          }
+
+          countEl.textContent = data.result.length.toLocaleString();
+          updEl.textContent = new Date().toTimeString().slice(0, 8);
+          kickAnimation();
+          refreshSuggestions();
+        } catch {
+          updEl.textContent = "offline";
+        }
+      }
+
+      function clearAll() {
+        vehicles.forEach((e) => {
+          map.removeLayer(e.marker);
+          map.removeLayer(e.trail);
+        });
+        vehicles.clear();
+        stopTracking();
+      }
+
+      // ---- Type toggle ----
+      document.querySelectorAll(".toggle button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (btn.classList.contains("active")) return;
+          document
+            .querySelectorAll(".toggle button")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentType = btn.dataset.type;
+          clearAll();
+          update();
+        });
+      });
+
+      // ---- Search ----
+      const searchInput = document.getElementById("search");
+      const suggestionsEl = document.getElementById("suggestions");
+      const searchClear = document.getElementById("search-clear");
+      let activeSuggestion = -1;
+      let searchFilter = "";
+
+      function applySearchFilter() {
+        const q = searchFilter.trim().toUpperCase();
+        vehicles.forEach((entry, id) => {
+          const matches =
+            !q ||
+            entry.line.toUpperCase().includes(q) ||
+            id.toUpperCase().includes(q);
+          const opacity = matches ? 0.95 : 0.08;
+          const trailOp = matches ? 0.45 : 0.04;
+          if (id !== trackedId) {
+            entry.marker.setStyle({
+              fillOpacity: opacity,
+              opacity: matches ? 0.9 : 0.15,
+            });
+            entry.trail.setStyle({ opacity: trailOp });
+          }
+        });
+      }
+
+      function refreshSuggestions() {
+        const q = searchInput.value.trim().toUpperCase();
+        if (!q) {
+          suggestionsEl.classList.remove("open");
+          suggestionsEl.innerHTML = "";
+          return;
+        }
+
+        // Group: matching lines + matching vehicle numbers
+        const lineMatches = new Map(); // line -> count
+        const vehicleMatches = [];
+
+        vehicles.forEach((entry, id) => {
+          const line = entry.line || "";
+          if (line.toUpperCase().includes(q)) {
+            lineMatches.set(line, (lineMatches.get(line) || 0) + 1);
+          }
+          if (id.toUpperCase().includes(q)) {
+            vehicleMatches.push({ id, line });
+          }
+        });
+
+        const items = [];
+        [...lineMatches.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 6)
+          .forEach(([line, count]) => {
+            items.push({ type: "line", line, count });
+          });
+        vehicleMatches
+          .slice(0, 6)
+          .forEach((v) => items.push({ type: "vehicle", ...v }));
+
+        if (items.length === 0) {
+          suggestionsEl.innerHTML = `<div class="suggestion" style="color: var(--muted); cursor: default;"><span class="suggestion-meta">No matches</span></div>`;
+          suggestionsEl.classList.add("open");
+          return;
+        }
+
+        suggestionsEl.innerHTML = items
+          .map((it, i) => {
+            if (it.type === "line") {
+              return `<div class="suggestion" data-idx="${i}" data-action="line" data-value="${it.line}">
+            <span class="suggestion-line">${it.line}</span>
+            <span class="suggestion-meta">${it.count} vehicle${it.count === 1 ? "" : "s"}</span>
+          </div>`;
+            } else {
+              return `<div class="suggestion" data-idx="${i}" data-action="vehicle" data-value="${it.id}">
+            <span class="suggestion-line">#${it.id}</span>
+            <span class="suggestion-meta">Line ${it.line}</span>
+          </div>`;
+            }
+          })
+          .join("");
+        activeSuggestion = -1;
+        suggestionsEl.classList.add("open");
+      }
+
+      searchInput.addEventListener("input", () => {
+        searchFilter = searchInput.value;
+        applySearchFilter();
+        refreshSuggestions();
+      });
+
+      searchInput.addEventListener("focus", refreshSuggestions);
+
+      searchInput.addEventListener("keydown", (e) => {
+        const items = suggestionsEl.querySelectorAll(
+          ".suggestion[data-action]",
+        );
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          activeSuggestion = Math.min(items.length - 1, activeSuggestion + 1);
+          items.forEach((el, i) =>
+            el.classList.toggle("active", i === activeSuggestion),
+          );
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          activeSuggestion = Math.max(0, activeSuggestion - 1);
+          items.forEach((el, i) =>
+            el.classList.toggle("active", i === activeSuggestion),
+          );
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (activeSuggestion >= 0 && items[activeSuggestion]) {
+            items[activeSuggestion].click();
+          } else if (items.length > 0) {
+            items[0].click();
+          }
+        } else if (e.key === "Escape") {
+          searchInput.blur();
+          suggestionsEl.classList.remove("open");
+        }
+      });
+
+      searchClear.addEventListener("click", () => {
+        searchInput.value = "";
+        searchFilter = "";
+        applySearchFilter();
+        suggestionsEl.classList.remove("open");
+        searchInput.focus();
+      });
+
+      suggestionsEl.addEventListener("click", (e) => {
+        const el = e.target.closest(".suggestion[data-action]");
+        if (!el) return;
+        const action = el.dataset.action;
+        const value = el.dataset.value;
+
+        if (action === "vehicle") {
+          searchInput.value = "";
+          searchFilter = "";
+          applySearchFilter();
+          suggestionsEl.classList.remove("open");
+          trackVehicle(value);
+        } else if (action === "line") {
+          searchInput.value = value;
+          searchFilter = value;
+          applySearchFilter();
+          suggestionsEl.classList.remove("open");
+          // Fit map to all matching vehicles
+          const bounds = [];
+          vehicles.forEach((entry) => {
+            if (entry.line === value) bounds.push(entry.to);
+          });
+          if (bounds.length > 0) {
+            map.flyToBounds(bounds, {
+              padding: [60, 60],
+              duration: 0.8,
+              maxZoom: 14,
+            });
+          }
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".search-wrap")) {
+          suggestionsEl.classList.remove("open");
+        }
+      });
+
+      // Pause refresh when tab hidden, resume + immediate fetch when visible
+      let refreshTimer = setInterval(update, REFRESH_MS);
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          clearInterval(refreshTimer);
+        } else {
+          update();
+          refreshTimer = setInterval(update, REFRESH_MS);
+        }
+      });
+
+      update();
+    </script>
+  </body>
+</html>
